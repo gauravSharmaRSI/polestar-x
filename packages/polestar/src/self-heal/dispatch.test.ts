@@ -49,7 +49,7 @@ describe("self-heal dispatch", () => {
 		expect(isAutoRetryFailureClass("infra")).toBe(false);
 	});
 
-	it("does not retry unclassified assistant errors", async () => {
+	async function expectNoAssistantSelfHealRetry(errorMessage: string): Promise<void> {
 		const state = createSelfHealState();
 		const sentMessages: string[] = [];
 		const pi = {
@@ -68,7 +68,7 @@ describe("self-heal dispatch", () => {
 				role: "assistant",
 				content: [],
 				stopReason: "error",
-				errorMessage: "authentication error: invalid API key",
+				errorMessage,
 			} as unknown as AgentMessage,
 		];
 
@@ -83,5 +83,11 @@ describe("self-heal dispatch", () => {
 		expect(retried).toBe(false);
 		expect(sentMessages).toEqual([]);
 		expect(state.attemptsByClass).toEqual({});
+	}
+
+	it("does not retry unclassified assistant errors", async () => {
+		await expectNoAssistantSelfHealRetry("authentication error: invalid API key");
+		await expectNoAssistantSelfHealRetry("billing quota exceeded");
+		await expectNoAssistantSelfHealRetry("maximum context length exceeded");
 	});
 });

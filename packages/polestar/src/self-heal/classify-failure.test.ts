@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classifyFailure, type FailureInput } from "./classify-failure.ts";
+import { classifyAssistantFailure, classifyFailure, type FailureInput } from "./classify-failure.ts";
 
 describe("classifyFailure", () => {
 	const defaultInput: FailureInput = {
@@ -70,5 +70,19 @@ describe("classifyFailure", () => {
 				exitCode: 1,
 			}),
 		).toBe("provider");
+	});
+});
+
+describe("classifyAssistantFailure", () => {
+	it("does not treat generic errors or non-zero exit heuristics as code_test", () => {
+		expect(classifyAssistantFailure("authentication error: invalid API key")).toBe("unknown");
+		expect(classifyAssistantFailure("billing quota exceeded")).toBe("unknown");
+		expect(classifyAssistantFailure("maximum context length exceeded")).toBe("unknown");
+		expect(classifyAssistantFailure("Some random application error")).toBe("unknown");
+	});
+
+	it("still classifies transient provider faults", () => {
+		expect(classifyAssistantFailure("Rate limit exceeded")).toBe("provider");
+		expect(classifyAssistantFailure("Error 503 Service Unavailable")).toBe("provider");
 	});
 });
