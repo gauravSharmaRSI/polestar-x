@@ -156,6 +156,42 @@ Attribution:
 
 5. **If CI publish fails**: inspect the failed `publish-npm` job. The publish helper is idempotent and skips package versions already present on npm, so rerun the tag workflow after fixing CI or transient npm issues. Do not rerun `npm run release:patch` or `npm run release:minor` for the same version.
 
+## Cursor Cloud specific instructions
+
+### Environment requirements
+
+- Node.js >= 22.19.0 (available in the default VM image)
+- npm 10.x with workspaces
+- No databases, Docker, Redis, or other infrastructure services needed; this is a pure CLI application
+
+### Dependency installation
+
+Run from the workspace root:
+
+```bash
+npm ci --ignore-scripts
+```
+
+Per repo policy, lifecycle scripts are never run during install. Use `--ignore-scripts` always.
+
+### Key development commands
+
+| Action | Command | Notes |
+|--------|---------|-------|
+| Lint + type check | `npm run check` | Uses Biome 2.x + tsgo (native TS preview). Run after code changes. |
+| Unit tests (safe) | `./test.sh` | Unsets all API keys; runs vitest across all packages without hitting real providers. |
+| Build all packages | `npm run build` | Builds packages in dependency order (tui -> ai -> agent -> coding-agent -> harness -> polestar). |
+| Run polestar dev | `npm run polestar` | Launches the CLI via tsx. Requires at least one LLM API key for full functionality. |
+| Run specific test | `node ../../node_modules/vitest/dist/cli.js --run test/file.test.ts` | Run from the package root. |
+
+### Gotchas
+
+- `@typescript/native-preview` (tsgo) is used for type checking via `npm run check`. It's a platform-specific optional dependency. If the install skips it, `tsgo --noEmit` will fail.
+- The `min-release-age=2` setting in `.npmrc` blocks installing packages published less than 2 days ago. This is intentional for supply-chain security but can cause CI issues when a freshly-published dependency is required.
+- Never run `npm run build` or `npm test` unless specifically requested. Use `npm run check` for validation and `./test.sh` for tests.
+- The pre-commit hook (`.husky/pre-commit`) runs `npm run check` and re-stages formatted files. It also checks lockfile changes require `PI_ALLOW_LOCKFILE_CHANGE=1`.
+- For the coding-agent test suite (`packages/coding-agent/test/suite/`), always use the faux provider via the test harness. No real API keys or paid tokens.
+
 ## User Override
 
 If the user's instructions conflict with any rule in this document, ask for explicit confirmation before overriding. Only then execute their instructions.
