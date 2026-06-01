@@ -23,3 +23,17 @@ export function classifyFailure(input: FailureInput): FailureClass {
 	}
 	return "unknown";
 }
+
+/** Classify assistant/API errors without bash exit-code heuristics. */
+export function classifyAssistantFailure(errorMessage: string): FailureClass {
+	const failureClass = classifyFailure({
+		command: "",
+		stdout: errorMessage,
+		stderr: "",
+		exitCode: 0,
+	});
+	if (failureClass === "code_test") {
+		return "unknown";
+	}
+	return failureClass;
+}

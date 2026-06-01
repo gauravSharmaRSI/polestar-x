@@ -1,8 +1,7 @@
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import type { AssistantMessage, Model } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "../../../coding-agent/src/core/extensions/types.ts";
-import type { FailureClass } from "./classify-failure.ts";
-import { classifyFailure } from "./classify-failure.ts";
+import { classifyAssistantFailure, classifyFailure } from "./classify-failure.ts";
 import {
 	buildSelfHealFollowUp,
 	isAutoRetryFailureClass,
@@ -78,15 +77,7 @@ export async function dispatchPendingSelfHealRetry(
 			return false;
 		}
 
-		let failureClass: FailureClass = classifyFailure({
-			command: "",
-			stdout: assistantError.errorMessage,
-			stderr: "",
-			exitCode: 0,
-		});
-		if (failureClass === "code_test") {
-			failureClass = "unknown";
-		}
+		const failureClass = classifyAssistantFailure(assistantError.errorMessage);
 		if (!isAutoRetryFailureClass(failureClass)) return false;
 
 		const attempt = getAttemptCount(state, failureClass);
